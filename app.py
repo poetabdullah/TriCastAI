@@ -52,7 +52,12 @@ def run_all_models(file):
         
         # Handle missing values
         model_features = model_features.fillna(0)
-        
+
+        for col in model_features.select_dtypes(include=['object']).columns:
+            model_features[col] = model_features[col].astype(str)
+            model_features[col] = model_features[col].fillna("Unknown")
+            model_features[col] = model_features[col].astype("category").cat.codes
+                
         # 1. BANKRUPTCY CLASSIFICATION
         bankruptcy_preds = xgb_clf.predict(model_features)
         bankruptcy_probs = xgb_clf.predict_proba(model_features)
