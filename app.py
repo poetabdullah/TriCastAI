@@ -43,19 +43,17 @@ def run_all_models(file):
         return "Error processing file", None, None, None, None, None
     
     try:
-        # Prepare data for models
-        model_features = df.copy()
-        for col in ['Id','anomaly_score','risk_flag']:
-            if col in model_features:
-                model_features.drop(col, axis=1, inplace=True)
-        # Fill NaNs
-        model_features = model_features.fillna(0)
+        # CLEAN DATASET: Drop irrelevant columns
+        df_clean = df.drop(columns=[col for col in ['Id', 'anomaly_score', 'risk_flag'] if col in df.columns])
         
-        # Align DataFrame columns to model’s training set:
-        model_features = model_features.reindex(
-            columns=expected_features,    # from xgb_clf.get_booster().feature_names
-            fill_value=0
-        )
+        # 1. Features for bankruptcy classification (XGBoost raw model)
+        clf_features = df_clean.copy()
+        clf_features = clf_features.fillna(0)
+        clf_features = clf_features.reindex(columns=expected_features, fill_value=0)
+        
+        # 2. Features for anomaly detection (XGBoost pipeline model)
+        reg_features = df_clean.copy()  # Pipeline handles preprocessing internally
+
 
         # 1. BANKRUPTCY CLASSIFICATION
         bankruptcy_preds = xgb_clf.predict(clf_features)
