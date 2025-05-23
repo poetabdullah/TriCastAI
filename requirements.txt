@@ -7,3 +7,5 @@ tensorflow
 joblib
 matplotlib
 seaborn
+tensorflow
+keras
