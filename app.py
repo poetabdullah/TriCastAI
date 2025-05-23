@@ -43,7 +43,6 @@ def run_all_models(file):
         return "Error processing file", None, None, None, None, None
     
     try:
-        # Prepare data for models (assuming same feature set as training)
         # Prepare data for models
         model_features = df.copy()
         for col in ['Id','anomaly_score','risk_flag']:
@@ -51,17 +50,16 @@ def run_all_models(file):
                 model_features.drop(col, axis=1, inplace=True)
         # Fill NaNs
         model_features = model_features.fillna(0)
-    
+        
         # Align DataFrame columns to model’s training set:
         model_features = model_features.reindex(
             columns=expected_features,    # from xgb_clf.get_booster().feature_names
             fill_value=0
         )
-            
+
         # 1. BANKRUPTCY CLASSIFICATION
-        bankruptcy_preds = xgb_clf.predict(model_features)
-        bankruptcy_probs = xgb_clf.predict_proba(model_features)
-        
+        bankruptcy_preds = xgb_clf.predict(clf_features)
+        bankruptcy_probs = xgb_clf.predict_proba(clf_features)
         # Create bankruptcy visualization
         fig1, ax1 = plt.subplots(figsize=(10, 6), facecolor='#1f1f1f')
         ax1.set_facecolor('#1f1f1f')
@@ -91,7 +89,7 @@ def run_all_models(file):
         plt.tight_layout()
         
         # 2. ANOMALY DETECTION
-        anomaly_preds = xgb_reg.predict(model_features)
+        anomaly_preds = xgb_reg.predict(reg_features)
         
         # Create anomaly visualization
         fig2, ax2 = plt.subplots(figsize=(10, 6), facecolor='#1f1f1f')
