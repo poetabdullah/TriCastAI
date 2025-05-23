@@ -11,8 +11,8 @@ import seaborn as sns
 # Load models & scalers
 xgb_clf = xgb.XGBClassifier(); xgb_clf.load_model("xgb_model.json")
 xgb_reg = joblib.load("xgb_pipeline_model.pkl")
-scaler_X = pickle.load(open("scaler_X.pkl", "rb"))
-scaler_y = pickle.load(open("scaler_y.pkl", "rb"))
+scaler_X = joblib.load("scaler_X.pkl")
+scaler_y = joblib.load("scaler_y.pkl")
 lstm_model = load_model("lstm_revenue_model.keras")
 
 # Prediction + Plot functions
