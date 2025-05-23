@@ -17,6 +17,8 @@ scaler_X = joblib.load("scaler_X.pkl")
 scaler_y = joblib.load("scaler_y.pkl")
 lstm_model = load_model("lstm_revenue_model.keras")
 
+expected_features = xgb_clf.get_booster().feature_names
+
 # Set matplotlib style for dark theme compatibility
 plt.style.use('dark_background')
 
