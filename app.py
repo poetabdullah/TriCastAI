@@ -42,22 +42,20 @@ def run_all_models(file):
     
     try:
         # Prepare data for models (assuming same feature set as training)
+        # Prepare data for models
         model_features = df.copy()
-        
-        # Remove non-feature columns if they exist
-        cols_to_remove = ['Id', 'anomaly_score', 'risk_flag'] 
-        for col in cols_to_remove:
-            if col in model_features.columns:
-                model_features = model_features.drop(col, axis=1)
-        
-        # Handle missing values
+        for col in ['Id','anomaly_score','risk_flag']:
+            if col in model_features:
+                model_features.drop(col, axis=1, inplace=True)
+        # Fill NaNs
         model_features = model_features.fillna(0)
-
-        for col in model_features.select_dtypes(include=['object']).columns:
-            model_features[col] = model_features[col].astype(str)
-            model_features[col] = model_features[col].fillna("Unknown")
-            model_features[col] = model_features[col].astype("category").cat.codes
-                
+    
+        # Align DataFrame columns to model’s training set:
+        model_features = model_features.reindex(
+            columns=expected_features,    # from xgb_clf.get_booster().feature_names
+            fill_value=0
+        )
+            
         # 1. BANKRUPTCY CLASSIFICATION
         bankruptcy_preds = xgb_clf.predict(model_features)
         bankruptcy_probs = xgb_clf.predict_proba(model_features)
