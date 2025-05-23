@@ -72,16 +72,18 @@ with demo:
     with gr.Tab("🏦 Bankruptcy Classifier"):
         gr.Markdown("**Upload company features** (as DataFrame) to predict bankruptcy:")
         inp1 = gr.Dataframe(type="pandas", label="Features DataFrame")
+        classify_btn = gr.Button("Run Classification")
         out1 = gr.Label(label="Predicted Label")
         plt1 = gr.Plot()
-        inp1.submit(classify_fn, inp1, [out1, plt1])
+        classify_btn.click(fn=classify_fn, inputs=inp1, outputs=[out1, plt1])])
 
     with gr.Tab("📈 Anomaly Regression"):
         gr.Markdown("**Upload company features** (as DataFrame) to predict anomaly score:")
         inp2 = gr.Dataframe(type="pandas", label="Features DataFrame")
+        regress_btn = gr.Button("Run Regression")
         out2 = gr.Textbox(label="Predicted Scores List")
         plt2 = gr.Plot()
-        inp2.submit(regress_fn, inp2, [out2, plt2])
+        regress_btn.click(fn=regress_fn, inputs=inp2, outputs=[out2, plt2])])
 
     with gr.Tab("📊 LSTM Revenue Forecast"):
         gr.Markdown("**Enter last 10 quarterly revenues** (comma-separated) to forecast Q10 revenue:")
