@@ -31,148 +31,150 @@ def process_csv_file(file):
         gr.Warning(f"Error reading CSV file: {str(e)}")
         return None
 
-def classify_fn(file):
-    """Bankruptcy classification from CSV file"""
+def run_all_models(file):
+    """Run all three models on the uploaded CSV file"""
     if file is None:
-        return "Please upload a CSV file", None
+        return "Please upload a CSV file", None, None, None, None, None
     
     df = process_csv_file(file)
     if df is None:
-        return "Error processing file", None
+        return "Error processing file", None, None, None, None, None
     
     try:
-        # Use all rows in the CSV for prediction
-        preds = xgb_clf.predict(df)
-        probs = xgb_clf.predict_proba(df)
+        # Prepare data for models (assuming same feature set as training)
+        model_features = df.copy()
         
-        # Create visualization
-        fig, ax = plt.subplots(figsize=(10, 6), facecolor='#1f1f1f')
-        ax.set_facecolor('#1f1f1f')
+        # Remove non-feature columns if they exist
+        cols_to_remove = ['Id', 'anomaly_score', 'risk_flag'] 
+        for col in cols_to_remove:
+            if col in model_features.columns:
+                model_features = model_features.drop(col, axis=1)
         
-        if len(preds) == 1:
-            # Single company prediction
-            bars = ax.bar(['No Bankruptcy', 'Bankruptcy'], probs[0], 
-                         color=['#4CAF50', '#F44336'], alpha=0.8)
-            ax.set_ylim(0, 1)
-            ax.set_title('Bankruptcy Probability', color='white', fontsize=14)
-            ax.set_ylabel('Probability', color='white')
-            result_text = f"Prediction: {'Bankruptcy Risk' if preds[0] == 1 else 'No Bankruptcy Risk'}\nConfidence: {max(probs[0]):.2%}"
+        # Handle missing values
+        model_features = model_features.fillna(0)
+        
+        # 1. BANKRUPTCY CLASSIFICATION
+        bankruptcy_preds = xgb_clf.predict(model_features)
+        bankruptcy_probs = xgb_clf.predict_proba(model_features)
+        
+        # Create bankruptcy visualization
+        fig1, ax1 = plt.subplots(figsize=(10, 6), facecolor='#1f1f1f')
+        ax1.set_facecolor('#1f1f1f')
+        
+        if len(bankruptcy_preds) == 1:
+            bars = ax1.bar(['No Bankruptcy', 'Bankruptcy'], bankruptcy_probs[0], 
+                          color=['#4CAF50', '#F44336'], alpha=0.8)
+            ax1.set_ylim(0, 1)
+            ax1.set_title('Bankruptcy Risk Probability', color='white', fontsize=14)
+            ax1.set_ylabel('Probability', color='white')
+            bankruptcy_result = f"Prediction: {'High Bankruptcy Risk' if bankruptcy_preds[0] == 1 else 'Low Bankruptcy Risk'}\nConfidence: {max(bankruptcy_probs[0]):.2%}"
         else:
-            # Multiple companies
-            bankruptcy_count = np.sum(preds)
-            safe_count = len(preds) - bankruptcy_count
-            bars = ax.bar(['Safe Companies', 'At Risk Companies'], 
-                         [safe_count, bankruptcy_count], 
-                         color=['#4CAF50', '#F44336'], alpha=0.8)
-            ax.set_title(f'Bankruptcy Analysis for {len(preds)} Companies', color='white', fontsize=14)
-            ax.set_ylabel('Number of Companies', color='white')
-            result_text = f"Total Companies: {len(preds)}\nSafe: {safe_count}\nAt Risk: {bankruptcy_count}"
+            bankruptcy_count = np.sum(bankruptcy_preds)
+            safe_count = len(bankruptcy_preds) - bankruptcy_count
+            bars = ax1.bar(['Safe Companies', 'At Risk Companies'], 
+                          [safe_count, bankruptcy_count], 
+                          color=['#4CAF50', '#F44336'], alpha=0.8)
+            ax1.set_title(f'Bankruptcy Analysis for {len(bankruptcy_preds)} Companies', color='white', fontsize=14)
+            ax1.set_ylabel('Number of Companies', color='white')
+            bankruptcy_result = f"Total Companies: {len(bankruptcy_preds)}\nSafe: {safe_count}\nAt Risk: {bankruptcy_count}"
         
-        ax.tick_params(colors='white')
-        ax.spines['bottom'].set_color('white')
-        ax.spines['left'].set_color('white')
-        ax.spines['top'].set_visible(False)
-        ax.spines['right'].set_visible(False)
-        
-        plt.tight_layout()
-        return result_text, fig
-        
-    except Exception as e:
-        return f"Error in prediction: {str(e)}", None
-
-def regress_fn(file):
-    """Anomaly detection from CSV file"""
-    if file is None:
-        return "Please upload a CSV file", None
-    
-    df = process_csv_file(file)
-    if df is None:
-        return "Error processing file", None
-    
-    try:
-        preds = xgb_reg.predict(df)
-        
-        # Create visualization
-        fig, ax = plt.subplots(figsize=(10, 6), facecolor='#1f1f1f')
-        ax.set_facecolor('#1f1f1f')
-        
-        sns.histplot(preds, bins=20, kde=True, ax=ax, color='#00BCD4', alpha=0.7)
-        ax.set_title('Anomaly Score Distribution', color='white', fontsize=14)
-        ax.set_xlabel('Anomaly Score', color='white')
-        ax.set_ylabel('Frequency', color='white')
-        ax.tick_params(colors='white')
-        ax.spines['bottom'].set_color('white')
-        ax.spines['left'].set_color('white')
-        ax.spines['top'].set_visible(False)
-        ax.spines['right'].set_visible(False)
-        
+        ax1.tick_params(colors='white')
+        ax1.spines['bottom'].set_color('white')
+        ax1.spines['left'].set_color('white')
+        ax1.spines['top'].set_visible(False)
+        ax1.spines['right'].set_visible(False)
         plt.tight_layout()
         
-        # Summary statistics
-        avg_score = np.mean(preds)
-        high_risk_count = np.sum(preds > np.percentile(preds, 75))
-        result_text = f"Average Anomaly Score: {avg_score:.3f}\nHigh Risk Companies: {high_risk_count}/{len(preds)}\nScore Range: {np.min(preds):.3f} - {np.max(preds):.3f}"
+        # 2. ANOMALY DETECTION
+        anomaly_preds = xgb_reg.predict(model_features)
         
-        return result_text, fig
+        # Create anomaly visualization
+        fig2, ax2 = plt.subplots(figsize=(10, 6), facecolor='#1f1f1f')
+        ax2.set_facecolor('#1f1f1f')
         
-    except Exception as e:
-        return f"Error in prediction: {str(e)}", None
-
-def lstm_fn(file):
-    """LSTM revenue forecasting from CSV file"""
-    if file is None:
-        return "Please upload a CSV file", None
-    
-    df = process_csv_file(file)
-    if df is None:
-        return "Error processing file", None
-    
-    try:
-        # Expect CSV with revenue columns or a single row with 10 revenue values
-        if df.shape[1] < 10:
-            return "CSV must contain at least 10 revenue columns for quarterly data", None
-        
-        # Take first row and first 10 columns as revenue sequence
-        vals = df.iloc[0, :10].values.astype(float).reshape(1, -1)
-        
-        # Scale and predict
-        vals_s = scaler_X.transform(vals).reshape((1, vals.shape[1], 1))
-        pred_s = lstm_model.predict(vals_s)
-        pred = scaler_y.inverse_transform(pred_s)[0, 0]
-        
-        # Create visualization
-        fig, ax = plt.subplots(figsize=(12, 6), facecolor='#1f1f1f')
-        ax.set_facecolor('#1f1f1f')
-        
-        quarters = [f'Q{i+1}' for i in range(10)]
-        ax.plot(quarters, vals.flatten(), marker='o', linewidth=2, 
-                markersize=8, color='#2196F3', label='Historical Revenue')
-        ax.plot('Q11', pred, marker='X', markersize=15, color='#FF5722', 
-                label=f'Predicted Q11: ${pred:,.0f}')
-        
-        ax.set_xlabel('Quarter', color='white')
-        ax.set_ylabel('Revenue ($)', color='white')
-        ax.set_title('Revenue Forecast - Next Quarter Prediction', color='white', fontsize=14)
-        ax.legend(facecolor='#2f2f2f', edgecolor='white', labelcolor='white')
-        ax.tick_params(colors='white')
-        ax.spines['bottom'].set_color('white')
-        ax.spines['left'].set_color('white')
-        ax.spines['top'].set_visible(False)
-        ax.spines['right'].set_visible(False)
-        ax.grid(True, alpha=0.3, color='white')
-        
-        plt.xticks(rotation=45)
+        sns.histplot(anomaly_preds, bins=20, kde=True, ax=ax2, color='#00BCD4', alpha=0.7)
+        ax2.set_title('Anomaly Score Distribution', color='white', fontsize=14)
+        ax2.set_xlabel('Anomaly Score', color='white')
+        ax2.set_ylabel('Frequency', color='white')
+        ax2.tick_params(colors='white')
+        ax2.spines['bottom'].set_color('white')
+        ax2.spines['left'].set_color('white')
+        ax2.spines['top'].set_visible(False)
+        ax2.spines['right'].set_visible(False)
         plt.tight_layout()
         
-        # Calculate growth rate
-        last_revenue = vals.flatten()[-1]
-        growth_rate = ((pred - last_revenue) / last_revenue) * 100
-        result_text = f"Predicted Q11 Revenue: ${pred:,.0f}\nGrowth from Q10: {growth_rate:+.1f}%"
+        avg_score = np.mean(anomaly_preds)
+        high_risk_count = np.sum(anomaly_preds > np.percentile(anomaly_preds, 75))
+        anomaly_result = f"Average Anomaly Score: {avg_score:.3f}\nHigh Risk Companies: {high_risk_count}/{len(anomaly_preds)}\nScore Range: {np.min(anomaly_preds):.3f} - {np.max(anomaly_preds):.3f}"
         
-        return result_text, fig
+        # 3. LSTM REVENUE FORECASTING
+        # Extract revenue data from Q1_REVENUES to Q10_REVENUES
+        revenue_cols = [f'Q{i}_REVENUES' for i in range(1, 11)]
+        missing_cols = [col for col in revenue_cols if col not in df.columns]
+        
+        if missing_cols:
+            lstm_result = f"Missing revenue columns for LSTM: {missing_cols}"
+            fig3 = plt.figure(figsize=(10, 6), facecolor='#1f1f1f')
+            ax3 = fig3.add_subplot(111, facecolor='#1f1f1f')
+            ax3.text(0.5, 0.5, 'Revenue columns not found in dataset', 
+                    ha='center', va='center', color='white', fontsize=14)
+            ax3.set_xlim(0, 1)
+            ax3.set_ylim(0, 1)
+            ax3.axis('off')
+        else:
+            # Use first company's revenue data for LSTM prediction
+            revenue_data = df[revenue_cols].iloc[0].values.astype(float)
+            
+            # Handle missing values in revenue data
+            if np.any(np.isnan(revenue_data)) or np.any(revenue_data == 0):
+                # Replace NaN and zeros with interpolated values
+                mask = ~np.isnan(revenue_data) & (revenue_data != 0)
+                if np.sum(mask) > 1:
+                    revenue_data[~mask] = np.interp(np.where(~mask)[0], np.where(mask)[0], revenue_data[mask])
+                else:
+                    revenue_data = np.full_like(revenue_data, np.mean(revenue_data[mask]) if np.sum(mask) > 0 else 1000000)
+            
+            revenue_data = revenue_data.reshape(1, -1)
+            
+            # Scale and predict
+            revenue_scaled = scaler_X.transform(revenue_data).reshape((1, revenue_data.shape[1], 1))
+            pred_scaled = lstm_model.predict(revenue_scaled)
+            predicted_revenue = scaler_y.inverse_transform(pred_scaled)[0, 0]
+            
+            # Create LSTM visualization
+            fig3, ax3 = plt.subplots(figsize=(12, 6), facecolor='#1f1f1f')
+            ax3.set_facecolor('#1f1f1f')
+            
+            quarters = [f'Q{i}' for i in range(1, 11)]
+            ax3.plot(quarters, revenue_data.flatten(), marker='o', linewidth=2, 
+                    markersize=8, color='#2196F3', label='Historical Revenue')
+            ax3.plot('Q11', predicted_revenue, marker='X', markersize=15, color='#FF5722', 
+                    label=f'Predicted Q11: ${predicted_revenue:,.0f}')
+            
+            ax3.set_xlabel('Quarter', color='white')
+            ax3.set_ylabel('Revenue ($)', color='white')
+            ax3.set_title('Revenue Forecast - Next Quarter Prediction', color='white', fontsize=14)
+            ax3.legend(facecolor='#2f2f2f', edgecolor='white', labelcolor='white')
+            ax3.tick_params(colors='white')
+            ax3.spines['bottom'].set_color('white')
+            ax3.spines['left'].set_color('white')
+            ax3.spines['top'].set_visible(False)
+            ax3.spines['right'].set_visible(False)
+            ax3.grid(True, alpha=0.3, color='white')
+            
+            plt.xticks(rotation=45)
+            plt.tight_layout()
+            
+            # Calculate growth rate
+            last_revenue = revenue_data.flatten()[-1]
+            growth_rate = ((predicted_revenue - last_revenue) / last_revenue) * 100
+            lstm_result = f"Predicted Q11 Revenue: ${predicted_revenue:,.0f}\nGrowth from Q10: {growth_rate:+.1f}%\nLast Quarter (Q10): ${last_revenue:,.0f}"
+        
+        return bankruptcy_result, fig1, anomaly_result, fig2, lstm_result, fig3
         
     except Exception as e:
-        return f"Error in prediction: {str(e)}", None
+        error_msg = f"Error in prediction: {str(e)}"
+        return error_msg, None, error_msg, None, error_msg, None
 
 # Custom CSS for proper dark mode support
 custom_css = """
@@ -223,23 +225,6 @@ custom_css = """
     color: #ffffff !important;
 }
 
-/* Tab styling */
-.gr-tab-nav {
-    background-color: #2d2d2d !important;
-    border-bottom: 1px solid #404040 !important;
-}
-
-.gr-tab-nav button {
-    background-color: transparent !important;
-    color: #ffffff !important;
-    border: none !important;
-}
-
-.gr-tab-nav button.selected {
-    background-color: #0066cc !important;
-    color: white !important;
-}
-
 /* Text and markdown */
 .gr-markdown {
     color: #ffffff !important;
@@ -259,70 +244,66 @@ custom_css = """
 with gr.Blocks(css=custom_css, theme=gr.themes.Base(), title="TriCast AI") as demo:
     gr.Markdown("""
     # 🚀 TriCast AI
-    ### Advanced Financial Intelligence Platform
-    Upload your company's financial data as a CSV file to get comprehensive AI-powered insights across three key areas.
+    ### Comprehensive Financial Intelligence Platform
+    Upload your company's financial data CSV file to get AI-powered insights across three key areas **simultaneously**.
     """)
     
     gr.Markdown("""
-    **📁 CSV File Format Guidelines:**
-    - **Bankruptcy & Anomaly Detection**: Include financial metrics as columns (revenue, debt, assets, etc.)
-    - **Revenue Forecasting**: First 10 columns should contain quarterly revenue data
-    - Each row represents one company's data
+    **📁 Expected CSV Format:**
+    Your CSV should contain financial metrics including:
+    - Basic info: `industry`, `sector`, `fullTimeEmployees`
+    - Risk metrics: `auditRisk`, `boardRisk`, `compensationRisk`, etc.
+    - Financial ratios: `trailingPE`, `forwardPE`, `totalDebt`, `totalRevenue`, etc.
+    - Quarterly data: `Q1_REVENUES`, `Q2_REVENUES`, ..., `Q10_REVENUES` (for LSTM forecasting)
+    - Quarterly financials: `Q*_TOTAL_ASSETS`, `Q*_TOTAL_LIABILITIES`, etc.
+    
+    📊 **One Upload = Three AI Models Running Simultaneously!**
     """)
     
-    with gr.Tab("🏦 Bankruptcy Risk Assessment"):
-        gr.Markdown("**Upload CSV with company financial data to assess bankruptcy risk**")
-        with gr.Row():
-            with gr.Column():
-                file1 = gr.File(label="Upload CSV File", file_types=[".csv"])
-                classify_btn = gr.Button("🔍 Analyze Bankruptcy Risk", variant="primary")
-            with gr.Column():
-                out1 = gr.Textbox(label="Analysis Results", lines=4)
-                plt1 = gr.Plot(label="Risk Visualization")
-        classify_btn.click(fn=classify_fn, inputs=file1, outputs=[out1, plt1])
-    
-    with gr.Tab("📊 Anomaly Detection"):
-        gr.Markdown("**Upload CSV with company financial data to detect anomalies**")
-        with gr.Row():
-            with gr.Column():
-                file2 = gr.File(label="Upload CSV File", file_types=[".csv"])
-                regress_btn = gr.Button("🔎 Detect Anomalies", variant="primary")
-            with gr.Column():
-                out2 = gr.Textbox(label="Anomaly Analysis", lines=4)
-                plt2 = gr.Plot(label="Score Distribution")
-        regress_btn.click(fn=regress_fn, inputs=file2, outputs=[out2, plt2])
-    
-    with gr.Tab("📈 Revenue Forecasting"):
-        gr.Markdown("**Upload CSV with quarterly revenue data (10 quarters) to forecast next quarter**")
-        with gr.Row():
-            with gr.Column():
-                file3 = gr.File(label="Upload CSV File", file_types=[".csv"])
-                forecast_btn = gr.Button("📊 Forecast Revenue", variant="primary")
-            with gr.Column():
-                out3 = gr.Textbox(label="Forecast Results", lines=4)
-                plt3 = gr.Plot(label="Revenue Trend & Prediction")
-        forecast_btn.click(fn=lstm_fn, inputs=file3, outputs=[out3, plt3])
-    
-    with gr.Tab("📋 Sample Data Format"):
-        gr.Markdown("""
-        ### Sample CSV Formats:
-        
-        **For Bankruptcy & Anomaly Detection:**
-        ```
-        company_name,total_assets,total_liabilities,revenue,debt_ratio,current_ratio
-        Company A,1000000,500000,800000,0.5,2.1
-        Company B,2000000,1800000,600000,0.9,0.8
-        ```
-        
-        **For Revenue Forecasting:**
-        ```
-        q1_revenue,q2_revenue,q3_revenue,q4_revenue,q5_revenue,q6_revenue,q7_revenue,q8_revenue,q9_revenue,q10_revenue
-        100000,120000,110000,130000,125000,140000,135000,150000,145000,160000
-        ```
-        """)
+    with gr.Row():
+        with gr.Column(scale=1):
+            file_input = gr.File(
+                label="📁 Upload Company Financial Data (CSV)", 
+                file_types=[".csv"],
+                elem_id="file_upload"
+            )
+            analyze_btn = gr.Button(
+                "🚀 Run TriCast AI Analysis", 
+                variant="primary", 
+                size="lg"
+            )
     
     gr.Markdown("---")
-    gr.Markdown("*TriCast AI - Powered by Advanced Machine Learning | Industry, Innovation and Infrastructure*")
+    
+
+    # Results section with three columns
+    with gr.Row():
+        with gr.Column():
+            gr.Markdown("### 🏦 Bankruptcy Risk Assessment")
+            bankruptcy_output = gr.Textbox(
+                label="Risk Analysis", 
+                lines=4,
+                placeholder="Results will appear here..."
+            )
+            bankruptcy_plot = gr.Plot(label="Risk Visualization")
+        
+        with gr.Column():
+            gr.Markdown("### 📊 Anomaly Detection")
+            anomaly_output = gr.Textbox(
+                label="Anomaly Analysis", 
+                lines=4,
+                placeholder="Results will appear here..."
+            )
+            anomaly_plot = gr.Plot(label="Score Distribution")
+        
+        with gr.Column():
+            gr.Markdown("### 📈 Revenue Forecasting")
+            lstm_output = gr.Textbox(
+                label="Forecast Summary", 
+                lines=4,
+                placeholder="Results will appear here..."
+            )
+            lstm_plot = gr.Plot(label="Revenue Forecast")
 
 if __name__ == "__main__":
     demo.launch()
