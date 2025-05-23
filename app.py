@@ -305,12 +305,12 @@ with gr.Blocks(css=custom_css, theme=gr.themes.Base(), title="TriCast AI") as de
             )
             lstm_plot = gr.Plot(label="Revenue Forecast")
 
-if __name__ == "__main__":
-    # Link button to function
     analyze_btn.click(
-        run_all_models,
-        inputs=[file_input],
-        outputs=[bankruptcy_output, bankruptcy_plot, anomaly_output, anomaly_plot, lstm_output, lstm_plot]
+    run_all_models,
+    inputs=[file_input],
+    outputs=[bankruptcy_output, bankruptcy_plot, anomaly_output, anomaly_plot, lstm_output, lstm_plot]
     )
+
+if __name__ == "__main__":
 
     demo.launch()
