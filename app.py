@@ -1,0 +1,92 @@
+import gradio as gr
+import pandas as pd
+import numpy as np
+import joblib
+import xgboost as xgb
+from tensorflow.keras.models import load_model
+import pickle
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+# Load models & scalers
+xgb_clf = xgb.XGBClassifier(); xgb_clf.load_model("xgb_model.json")
+xgb_reg = joblib.load("xgb_pipeline_model.pkl")
+scaler_X = pickle.load(open("scaler_X.pkl", "rb"))
+scaler_y = pickle.load(open("scaler_y.pkl", "rb"))
+lstm_model = load_model("lstm_revenue_model.keras")
+
+# Prediction + Plot functions
+def classify_fn(df):
+    # df: pandas DataFrame of features
+    preds = xgb_clf.predict(df)
+    probs = xgb_clf.predict_proba(df)
+    # Bar chart for first prediction probabilities
+    fig, ax = plt.subplots()
+    ax.bar(['No Bankruptcy','Bankruptcy'], probs[0], color=['#4CAF50','#F44336'])
+    ax.set_ylim(0,1)
+    ax.set_title('Bankruptcy Probability')
+    ax.set_ylabel('Probability')
+    plt.tight_layout()
+    return {"Predicted Label": int(preds[0])}, fig
+
+
+def regress_fn(df):
+    preds = xgb_reg.predict(df)
+    # Histogram of predictions
+    fig, ax = plt.subplots()
+    sns.histplot(preds, bins=20, kde=True, ax=ax)
+    ax.set_title('Anomaly Score Distribution')
+    ax.set_xlabel('Predicted Anomaly Score')
+    plt.tight_layout()
+    return preds.tolist(), fig
+
+
+def lstm_fn(seq_str):
+    # seq_str: comma-separated Q0-Q9 revenues
+    vals = np.array(list(map(float, seq_str.split(',')))).reshape(1, -1)
+    vals_s = scaler_X.transform(vals).reshape((1, vals.shape[1], 1))
+    pred_s = lstm_model.predict(vals_s)
+    pred = scaler_y.inverse_transform(pred_s)[0,0]
+    # Plot input series + predicted point
+    fig, ax = plt.subplots()
+    ax.plot(range(10), vals.flatten(), marker='o', label='Input Revenue')
+    ax.plot(10, pred, marker='X', markersize=10, color='red', label='Predicted Q10')
+    ax.set_xlabel('Quarter Index (0-10)')
+    ax.set_ylabel('Revenue')
+    ax.set_title('Revenue Forecast')
+    ax.legend()
+    plt.tight_layout()
+    return float(pred), fig
+
+# Build UI
+grid_css = """
+body {background-color: #f7f7f7;}
+.gradio-container {max-width: 800px; margin: auto; padding: 20px;}
+h1, h2 {color: #333;}
+"""
+
+demo = gr.Blocks(css=grid_css)
+with demo:
+    gr.Markdown("# 🚀 FinSight 360™ Dashboard")
+    gr.Markdown("Comprehensive financial AI: Bankruptcy Classification, Anomaly Scoring, and Revenue Forecasting.")
+    with gr.Tab("🏦 Bankruptcy Classifier"):
+        gr.Markdown("Upload a single row of company features (CSV or paste) to predict bankruptcy:")
+        inp1 = gr.Dataframe(headers="...", datatype=["number"]*20 + ["text"]*4, label="Features DataFrame")
+        lbl1 = gr.Label(label="Predicted Label")
+        plt1 = gr.Plot()
+        inp1.submit(classify_fn, inp1, [lbl1, plt1])
+    with gr.Tab("📈 Anomaly Regression"):
+        gr.Markdown("Upload company features to predict anomaly score:")
+        inp2 = gr.Dataframe(headers="...", datatype=["number"]*100, label="Features DataFrame")
+        out2 = gr.Textbox(label="Predicted Scores List")
+        plt2 = gr.Plot()
+        inp2.submit(regress_fn, inp2, [out2, plt2])
+    with gr.Tab("📊 LSTM Revenue Forecast"):
+        gr.Markdown("Enter last 10 quarterly revenues (comma-separated) to forecast Q10 revenue:")
+        inp3 = gr.Textbox(placeholder="e.g. 1000,1200,1100,...", label="Q0–Q9 Revenues")
+        out3 = gr.Number(label="Predicted Q10 Revenue")
+        plt3 = gr.Plot()
+        inp3.submit(lstm_fn, inp3, [out3, plt3])
+    gr.Markdown("---\n*Built with ❤️ by FinSight AI Team*")
+
+demo.launch()
