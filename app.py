@@ -67,7 +67,7 @@ h1, h2 {color: #333;}
 demo = gr.Blocks(css=grid_css)
 with demo:
     gr.Markdown("# 🚀 FinSight 360™ Dashboard")
-    gr.Markdown("Comprehensive financial AI:\\n- Bankruptcy Classification\\n- Anomaly Scoring\\n- Revenue Forecasting")
+    gr.Markdown("Comprehensive financial AI:\n- Bankruptcy Classification\n- Anomaly Scoring\n- Revenue Forecasting")
 
     with gr.Tab("🏦 Bankruptcy Classifier"):
         gr.Markdown("**Upload company features** (as DataFrame) to predict bankruptcy:")
@@ -75,7 +75,7 @@ with demo:
         classify_btn = gr.Button("Run Classification")
         out1 = gr.Label(label="Predicted Label")
         plt1 = gr.Plot()
-        classify_btn.click(fn=classify_fn, inputs=inp1, outputs=[out1, plt1])])
+        classify_btn.click(fn=classify_fn, inputs=inp1, outputs=[out1, plt1])
 
     with gr.Tab("📈 Anomaly Regression"):
         gr.Markdown("**Upload company features** (as DataFrame) to predict anomaly score:")
@@ -83,15 +83,15 @@ with demo:
         regress_btn = gr.Button("Run Regression")
         out2 = gr.Textbox(label="Predicted Scores List")
         plt2 = gr.Plot()
-        regress_btn.click(fn=regress_fn, inputs=inp2, outputs=[out2, plt2])])
+        regress_btn.click(fn=regress_fn, inputs=inp2, outputs=[out2, plt2])
 
     with gr.Tab("📊 LSTM Revenue Forecast"):
         gr.Markdown("**Enter last 10 quarterly revenues** (comma-separated) to forecast Q10 revenue:")
         inp3 = gr.Textbox(placeholder="e.g. 1000,1200,1100,...", label="Q0–Q9 Revenues")
         out3 = gr.Number(label="Predicted Q10 Revenue")
         plt3 = gr.Plot()
-        inp3.submit(lstm_fn, inp3, [out3, plt3])
+        inp3.submit(fn=lstm_fn, inputs=inp3, outputs=[out3, plt3])
 
-    gr.Markdown("---\\n*SDG 9: Industry, Innovation and Infrastructure*")
+    gr.Markdown("---\n*Industry, Innovation and Infrastructure*")
 
 demo.launch()
