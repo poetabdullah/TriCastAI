@@ -9,3 +9,5 @@ matplotlib
 seaborn
 tensorflow
 keras
+openpyxl
+xlrd>=1.2.0,<2.0
