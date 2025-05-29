@@ -22,23 +22,31 @@ expected_features = xgb_clf.get_booster().feature_names
 # Set matplotlib style for dark theme compatibility
 plt.style.use('dark_background')
 
-def process_csv_file(file):
-    """Process uploaded CSV file and return DataFrame"""
+def process_file(file):
+    """Process uploaded file (.csv, .xlsx, .xls) and return DataFrame"""
     if file is None:
         return None
     try:
-        df = pd.read_csv(file.name)
+        if file.name.endswith('.csv'):
+            df = pd.read_csv(file.name)
+        elif file.name.endswith(('.xls', '.xlsx')):
+            df = pd.read_excel(file.name, engine='openpyxl')  # you can also try 'xlrd' for .xls
+        else:
+            gr.Warning("Unsupported file format. Please upload a .csv, .xls, or .xlsx file.")
+            return None
         return df
     except Exception as e:
-        gr.Warning(f"Error reading CSV file: {str(e)}")
+        gr.Warning(f"Error reading file: {str(e)}")
         return None
+
 
 def run_all_models(file):
     """Run all three models on the uploaded CSV file"""
     if file is None:
         return "Please upload a CSV file", None, None, None, None, None
     
-    df = process_csv_file(file)
+    df = process_file(file)
+
     if df is None:
         return "Error processing file", None, None, None, None, None
     
