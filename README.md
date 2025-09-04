@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 ---
 title: TriCast AI
 emoji: 🏆
@@ -11,3 +12,6 @@ short_description: 'Triple-cast insights: risk, anomaly, and revenue.'
 ---
 
 Check out the configuration reference at https://huggingface.co/docs/hub/spaces-config-reference
+=======
+# TriCastAI
+>>>>>>> b1e6973b6cd43de2fc7824f9392cfb78ad745447
