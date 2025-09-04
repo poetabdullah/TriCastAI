@@ -76,21 +76,6 @@ On **June 2, 2025**, pitched to **Pak Laser Engrave (Pvt.) Ltd.**:
 
 ---
 
-## 📂 Repository Structure  
-```
-
-📦 TriCast-AI
-┣ 📜 README.md
-┣ 📜 requirements.txt
-┣ 📂 notebooks      # EDA, preprocessing, training
-┣ 📂 models         # Saved XGBoost + LSTM models
-┣ 📂 app            # Streamlit/Gradio UI
-┗ 📂 data           # Sample cleaned datasets
-
-```
-
----
-
 ## ⚡ Tech Stack  
 **Languages & Libraries** → Python, Pandas, NumPy, Scikit-learn, XGBoost, TensorFlow/Keras  
 **Visualization** → Matplotlib, Seaborn  
