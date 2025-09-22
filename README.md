@@ -113,5 +113,3 @@ TriCast AI started in a classroom — but it didn’t stay there.
 It’s been **tested, pitched, validated**, and deployed to the real world.  
 
 ⚡ This isn’t “just another ML project” — it’s a tool for **financial resilience**.
-
-👉 Do you also want me to make a **compact badge-style Tech Stack section** (like your personal README) instead of plain text lists?
